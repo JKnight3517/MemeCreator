@@ -37,16 +37,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewDidLoad() {
         super.viewDidLoad()
         shareButton.isEnabled = false
-        topTextField.delegate = self
-        bottomTextField.delegate = self
-        topTextField.defaultTextAttributes = defualtTextFieldAttributes
-        bottomTextField.defaultTextAttributes = defualtTextFieldAttributes
-        topTextField.textAlignment = .center
-        topTextField.text = "TOP"
-        bottomTextField.textAlignment = .center
-        bottomTextField.text = "BOTTOM"
-        
-        
+        setUpTextFields(textField: topTextField, text: "TOP")
+        setUpTextFields(textField: bottomTextField, text: "BOTTOM")
         self.navigationController?.navigationBar.isTranslucent = true
         self.navigationController?.view.backgroundColor = .clear
         
@@ -67,7 +59,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBAction func pickImage(_ sender: Any) {
         // Check to see if albums or camera sent us here
         let buttonItem = sender as! UIBarButtonItem
-        print("This is the sender variable: \(sender)")
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = self
         if buttonItem.title == "Album" {
@@ -89,7 +80,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     // MARK: TextField Functions
     
     func textFieldDidBeginEditing(_ textField: UITextField) {
-        moveScreenForKeyboard = textField == topTextField ? false : true
+        // Don't move the screen up for the keyboard if we are not editing the bottom textfield
+        moveScreenForKeyboard = bottomTextField.isFirstResponder
         textField.text = ""
     }
     
@@ -104,6 +96,17 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             textField.text = replacementStr
         }
         
+    }
+    
+    func setUpTextFields(textField: UITextField, text: String) {
+        textField.text = text
+        textField.delegate = self
+            textField.defaultTextAttributes = [
+            .font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
+            .foregroundColor: UIColor.white,
+            .strokeColor: UIColor.black,
+            .strokeWidth: -3.0]
+           textField.textAlignment = .center
     }
     
     // MARK: Saving, Sharing, and Cancelling
