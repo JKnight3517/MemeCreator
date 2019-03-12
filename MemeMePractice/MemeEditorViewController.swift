@@ -9,7 +9,7 @@
 // using the imagePickerController activity or by allowing the usre to take a picture
 import UIKit
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UITextFieldDelegate{
+class MemeEditorViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UITextFieldDelegate{
     @IBOutlet weak var centralImage: UIImageView!
     @IBOutlet weak var cameraButton: UIBarButtonItem!
     @IBOutlet weak var topTextField: UITextField!
@@ -17,6 +17,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet weak var shareButton: UIBarButtonItem!
     @IBOutlet weak var navBar: UINavigationItem!
     @IBOutlet weak var tabBar: UIToolbar!
+    @IBOutlet weak var memeView: UIView!
     
     // MARK: Set up defualts and globals
     let defualtTextFieldAttributes: [NSAttributedString.Key : Any] = [
@@ -25,15 +26,9 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
         NSAttributedString.Key.strokeWidth: -3.0
     ]
-    struct memeObject {
-        var toptext: String
-        var bottomText: String
-        var originalImage: UIImage
-        var memeImage: UIImage
-    }
     var moveScreenForKeyboard = true
     
-    //MARK: View Loading/Dissapearing functions
+    //MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         shareButton.isEnabled = false
@@ -47,11 +42,14 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+        // hide tab bar since it's not useful in this activity
+        self.tabBarController?.tabBar.isHidden = true
         subscribeToKeyboardNotifications()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        self.tabBarController?.tabBar.isHidden = false
         unsubscribeFromKeyboardNotifications()
     }
     
@@ -101,12 +99,12 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     func setUpTextFields(textField: UITextField, text: String) {
         textField.text = text
         textField.delegate = self
-            textField.defaultTextAttributes = [
+        textField.defaultTextAttributes = [
             .font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
             .foregroundColor: UIColor.white,
             .strokeColor: UIColor.black,
             .strokeWidth: -3.0]
-           textField.textAlignment = .center
+        textField.textAlignment = .center
     }
     
     // MARK: Saving, Sharing, and Cancelling
@@ -114,8 +112,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         // remove navigation and tab bar from view before generating meme
         self.navigationController?.setNavigationBarHidden(true, animated: false)
         tabBar.isHidden = true
-        UIGraphicsBeginImageContext(self.view.frame.size)
-        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
+        UIGraphicsBeginImageContextWithOptions(memeView.frame.size, true, 0.0)
+        view.drawHierarchy(in: memeView.frame, afterScreenUpdates: true)
         let memedImage:UIImage = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
         tabBar.isHidden = false
@@ -125,7 +123,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func save() {
-        _ = memeObject(toptext: topTextField.text!, bottomText: bottomTextField.text!, originalImage: centralImage.image!, memeImage: generateMemeImage())
+        // create the instance of meme struct and save it to our centralized array
+        let meme = Meme(toptext: topTextField.text!, bottomText: bottomTextField.text!, originalImage: centralImage.image!, memeImage: generateMemeImage())
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        appDelegate.memes.append(meme)
     }
     @IBAction func share(_ sender: Any) {
         let memeImage = generateMemeImage()
@@ -135,15 +136,14 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         activityController.completionWithItemsHandler = {activity, success, items, error in
             if success {
                 self.save()
-                self.dismiss(animated: true, completion: nil)
+                // head back to the beginning of the app once a user has sent their creation
+                self.navigationController!.popToRootViewController(animated: true)
             }
         }
     }
-    // Called when user presses cancel
+    
     @IBAction func cancelEditing () {
-        centralImage.image = nil
-        topTextField.text = "TOP"
-        bottomTextField.text = "BOTTOM"
+        self.navigationController!.popToRootViewController(animated: true)
         
     }
     
